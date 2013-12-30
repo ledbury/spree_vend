@@ -19,7 +19,7 @@ describe Order do
     end
 
     context "with an anonymous user" do
-      include_context "an anonymous user"
+      let(:vend_customer) { VendObjects.anonymous_customer }
       include_examples "receives a vend customer"
 
       it "creates anonymous user" do
@@ -28,7 +28,7 @@ describe Order do
     end
 
     context "with a bad address" do
-      include_context "a user with an invalid address"
+      let(:vend_customer) { VendObjects.invalid_address_customer }
       include_examples "receives a vend customer"
 
       it "saves address as ship address for user and order" do
@@ -43,7 +43,7 @@ describe Order do
     end
 
     context "with all required info" do
-      include_context "a user with all required info"
+      let(:vend_customer) { VendObjects.customer }
       include_examples "receives a vend customer"
 
       it "saves address as ship address for user and order" do
@@ -61,40 +61,15 @@ describe Order do
 
   describe "#receive_vend_items" do
 
-    before do
-      Fabricate.times(3, :variant)
-    end
+    before { Fabricate.times(3, :variant) }
+
+    let(:vend_items) { VendObjects.line_items }
 
     subject(:order) do
       Order.create.tap do |o|
         o.vend_items = vend_items
         o.send(:receive_vend_items)
       end
-    end
-
-    let(:vend_items) do
-      Hashie::Mash.new([
-        {
-          quantity: 1,
-          price: "50.0",
-          sku: "sku-1",
-        },
-        {
-          quantity: 2,
-          price: "51.0",
-          sku: "sku-2",
-        },
-        {
-          quantity: 1,
-          price: "10.0",
-          sku: "sku-3",
-        },
-        {
-          quantity: 1,
-          price: "20.0",
-          sku: "sku-3",
-        }
-      ])
     end
 
     it "adds each item to order"
