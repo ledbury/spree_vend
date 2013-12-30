@@ -6,6 +6,11 @@ describe Order do
 
   describe "#receive_vend_customer" do
 
+    before do
+      Fabricate(:country)
+      Fabricate(:state)
+    end
+
     subject(:order) do
       Order.create.tap do |o|
         o.vend_customer = vend_customer
@@ -39,7 +44,7 @@ describe Order do
 
     context "with all required info" do
       include_context "a user with all required info"
-      include_examples "a vend customer receiver"
+      include_examples "receives a vend customer"
 
       it "saves address as ship address for user and order" do
         expect(order.reload.ship_address.address1).to eql(vend_customer.physical_address1)
@@ -55,6 +60,10 @@ describe Order do
   end
 
   describe "#receive_vend_items" do
+
+    before do
+      Fabricate.times(3, :variant)
+    end
 
     subject(:order) do
       Order.create.tap do |o|
