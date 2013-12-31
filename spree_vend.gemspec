@@ -23,8 +23,8 @@ Gem::Specification.new do |s|
 
   s.add_development_dependency 'rspec-rails'
   s.add_development_dependency 'sqlite3'
-  s.add_development_dependency 'fabrication'
-  s.add_development_dependency 'faker'
+  s.add_development_dependency 'fabrication', '~> 2.9.0'
+  s.add_development_dependency 'ffaker'
   s.add_development_dependency 'database_cleaner'
   
 end

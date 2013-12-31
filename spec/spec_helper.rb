@@ -5,7 +5,7 @@ require File.expand_path("../dummy/config/environment.rb",  __FILE__)
 require "spree_vend"
 require "rspec/rails"
 require "fabrication"
-require "faker"
+require "ffaker"
 require 'database_cleaner'
 require "hashie"
 

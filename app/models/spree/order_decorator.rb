@@ -33,7 +33,7 @@ Order.class_eval do
     if save(:validate => false)
       SpreeVend::Logger.info "Finished finalizing Vend sale as Spree order #{number}."
     end
-  end
+  end  
 
   private
 
@@ -65,17 +65,18 @@ Order.class_eval do
     self.vend_items = self.vend_items.reject do |item|
       if (variant = Variant.find_by_sku(item.sku)) && item.quantity > 0
         out_of_stock_items += 1 if variant.on_hand < 1 || ((variant.on_hand - item.quantity) < 0)
-        add_variant variant, item.quantity, 0, item.price
+        self.define_singleton_method(:contains?) { |variant| false }
+        add_variant(variant, item.quantity).update_attribute(:price, item.price)
       end
     end
     SpreeVend::Notification.info("Vend sale for Spree order #{number} contains #{out_of_stock_items} out of stock item(s).") if out_of_stock_items > 0
   end
 
   def receive_vend_coupons
-    @vend_line_items = @vend_line_items.reject do |item|
-      if promo = Promotion.includes(:stored_preferences).where("preferences.name = ? and preferences.value = ?", "code", item.sku).first
+    self.vend_items = self.vend_items.reject do |item|
+      if promo = Promotion.joins(:stored_preferences).where("preferences.name = ? and preferences.value = ?", "code", item.sku).first
         payload = { :order => self }
-        promo.promotion_actions(true).first.try(:perform, payload)
+        promo.promotion_actions.first.try(:perform, payload) # This bypasses the eligibility check in Promotion#activate
         adjustments.find do |adj|
           adj.originator.promotion.code == promo.code
         end.try(:update_attributes_without_callbacks, {

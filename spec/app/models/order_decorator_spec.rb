@@ -6,7 +6,7 @@ describe Order do
 
   describe "#receive_vend_customer" do
 
-    before do
+    before(:all) do
       Fabricate(:country)
       Fabricate(:state)
     end
@@ -61,7 +61,10 @@ describe Order do
 
   describe "#receive_vend_items" do
 
-    before { Fabricate.times(3, :variant) }
+    before do
+      Fabricate.times(3, :variant)
+      Fabrication::Sequencer.reset
+    end
 
     let(:vend_items) { VendObjects.line_items }
 
@@ -72,17 +75,57 @@ describe Order do
       end
     end
 
-    it "adds each item to order"
+    it "adds line item to order for each line item from vend" do
+      expect(order.line_items.count).to eql(vend_items.count)
+    end
 
-    it "adds correct quantity for each item"
+    it "adds correct quantity for each item" do
+      vend_qty = vend_items.inject(0) { |q, i| q + i.quantity }
+      expect(order.item_count).to eql(vend_qty)
+    end
 
-    it "adds correct price for each item"
-
-    it "does not combine same items with different prices"
+    it "adds correct price for each item" do
+      vend_item_total = vend_items.inject(0.to_f) { |t, i| t + i.price.to_f * i.quantity.to_i }
+      order.update!
+      expect(order.item_total.to_f).to eql(vend_item_total)
+    end
 
   end
 
-  describe "#receive_vend_coupons"
+  describe "#receive_vend_coupons" do
+
+    before do
+      @promotion = Fabricate(:promotion)
+    end
+
+    let(:promotion) { @promotion }
+    let(:vend_items) { VendObjects.coupon_line_items }
+
+    subject(:order) do
+      Order.create.tap do |o|
+        o.vend_items = vend_items
+        o.send(:receive_vend_coupons)
+      end
+    end
+
+    it "applies correct adjustment amount" do
+      expect(order.adjustments.first.amount.to_f).to eql(vend_items.first.price.to_f)
+    end
+
+    it "attributes adjustment to promotion" do
+      expect(order.adjustments.first.originator.promotion.code).to eql(vend_items.first.sku)
+    end
+
+    it "ignores promotion rules" do
+      expect(promotion.eligible?(order)).to be_false
+      expect(order.adjustments.first.eligible).to be_true
+    end
+
+    it "locks adjustment from future recalculations" do
+      expect(order.adjustments.first.locked).to be_true
+    end
+
+  end
 
   describe "#receive_vend_shipping"
 
