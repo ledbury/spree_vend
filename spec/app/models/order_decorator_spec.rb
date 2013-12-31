@@ -99,7 +99,7 @@ describe Order do
     end
 
     let(:promotion) { @promotion }
-    let(:vend_items) { VendObjects.coupon_line_items }
+    let(:vend_items) { VendObjects.coupon_line_item }
 
     subject(:order) do
       Order.create.tap do |o|
@@ -127,7 +127,81 @@ describe Order do
 
   end
 
-  describe "#receive_vend_shipping"
+  describe "#receive_vend_shipping" do
+
+    before(:each) do
+      SpreeVend.vend_default_shipping_method_name = "Ground"
+      Fabricate(:shipping_method, name: "Ground")
+      Fabricate(:shipping_method, name: "Overnight")
+    end
+
+    subject(:order) do
+      Order.create.tap do |o|
+        o.vend_items = vend_items
+        o.send(:receive_vend_shipping)
+      end
+    end
+
+    it { expect(ShippingMethod.find_by_name("Ground")).not_to be_nil }
+
+    context "with no default shipping method defined" do
+      before { SpreeVend.vend_default_shipping_method_name = nil }
+      let(:vend_items) { VendObjects.line_items }
+      subject(:order) do
+        Order.create.tap do |o|
+          o.vend_items = vend_items
+        end
+      end
+      
+      it "throws an exception" do
+        expect { order.send(:receive_vend_shipping)}.to raise_error(VendPosError, "No default shipping method defined for SpreeVend configuration.")
+      end
+
+    end
+
+    context "with non-existant default shipping method defined" do
+      before { SpreeVend.vend_default_shipping_method_name = "Yesterday Shipping" }
+      let(:vend_items) { VendObjects.line_items }
+      subject(:order) do
+        Order.create.tap do |o|
+          o.vend_items = vend_items
+        end
+      end
+      
+      it "throws an exception" do
+        expect { order.send(:receive_vend_shipping)}.to raise_error(VendPosError, "SpreeVend default shipping method is not an available shipping method.")
+      end
+
+    end
+
+    context "with no shipping item in vend sale" do
+      let(:vend_items) { VendObjects.line_items }
+      
+      it "adds default shipping method to order" do
+        expect(order.shipping_method.name).to eql(SpreeVend.vend_default_shipping_method_name)
+      end
+
+    end
+
+    context "with a shipping item in vend sale" do
+      let(:vend_items) { VendObjects.shipping_line_item }
+
+      it "adds desired shipping method to order" do
+        expect(order.shipping_method.name).to eql(vend_items.first.name)
+      end
+
+    end
+
+    context "with multiple shipping items in vend sale" do
+      let(:vend_items) { VendObjects.shipping_line_items }
+
+      it "behaves unexpectedly" do
+        expect(order.shipping_method.name).to satisfy { |n| vend_items.find(n) }
+      end
+
+    end
+
+  end
 
   describe "#receive_vend_adjustments"
 

@@ -27,13 +27,42 @@ module VendObjects
     ).line_items
   end
 
-  def self.coupon_line_items
+  def self.coupon_line_item
     Hashie::Mash.new(
       :line_items => [
         {
           quantity: 1,
           price: "-50.0",
           sku: "COUPON-CODE"
+        }
+      ]
+    ).line_items
+  end
+
+  def self.shipping_line_item
+    Hashie::Mash.new(
+      :line_items => [
+        {
+          quantity: 1,
+          price: "10.0",
+          name: "Overnight"
+        }
+      ]
+    ).line_items
+  end
+
+  def self.shipping_line_items
+    Hashie::Mash.new(
+      :line_items => [
+        {
+          quantity: 1,
+          price: "10.0",
+          name: "Ground"
+        },
+        {
+          quantity: 1,
+          price: "10.0",
+          name: "Overnight"
         }
       ]
     ).line_items

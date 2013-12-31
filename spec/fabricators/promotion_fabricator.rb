@@ -1,7 +1,3 @@
-Fabricator(:flat_rate_calculator, class_name: "Calculator::FlatRate") do
-  preferred_amount 10.0
-end
-
 Fabricator(:create_adjustment_action, class_name: "Promotion::Actions::CreateAdjustment") do
   initialize_with { Promotion::Actions::CreateAdjustment.create }
   calculator { Fabricate.build(:flat_rate_calculator) }

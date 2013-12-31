@@ -14,7 +14,6 @@ Order.class_eval do
   end
 
   def finalize_quietly
-    self.shipping_method ||= ShippingMethod.find_by_name(SpreeVend.vend_default_shipping_method_name)
     self.completed_at = Time.now
     self.state = "complete"
     save(:validate => false)
@@ -90,8 +89,17 @@ Order.class_eval do
   end
 
   def receive_vend_shipping
-    @vend_line_items = @vend_line_items.reject do |item|
-      self.shipping_method = ShippingMethod.find_by_name(item.name)
+    if default = SpreeVend.vend_default_shipping_method_name
+      unless self.shipping_method = ShippingMethod.find_by_name(default)
+        raise VendPosError, "SpreeVend default shipping method is not an available shipping method."
+      end
+    else
+      raise VendPosError, "No default shipping method defined for SpreeVend configuration."
+    end
+    self.vend_items = self.vend_items.reject do |item|
+      if shipping = ShippingMethod.find_by_name(item.name)
+        self.shipping_method = shipping
+      end
     end
   end
 
