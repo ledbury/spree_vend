@@ -111,7 +111,7 @@ Order.class_eval do
     end
   end
 
-  # We don't use a spree TaxRate object as the originator so we can force the vend-calculated tax amounts
+  # Should be refactored to add tax like #receive_vend_coupons
   def receive_vend_tax
     vend_taxes = self.vend_sale.taxes
     manual_taxes = self.vend_sale.register_sale_products.find_all do |adj|
@@ -140,23 +140,19 @@ Order.class_eval do
   end
 
   def receive_vend_payments
-    update_totals
-
-    # Apply normal payments
     self.vend_payments.each do |payment|
       payments.build(
         :amount => payment.amount,
         :payment_method_id => PaymentMethod.find_by_name("Vend").id)
     end
 
-    # Process payments
     begin
       process_payments!
     rescue StandardError => e
-      SpreeVend::Notification.error e, "Could not capture payment for Vend sale, corresponding Spree order #{number}."
+      SpreeVend::Notification.error e, "Could not capture payment for Vend sale."
     end
 
-    update!
+    save(:validate => false)
   end
 
 end

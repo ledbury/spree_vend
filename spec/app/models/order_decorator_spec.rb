@@ -232,7 +232,8 @@ describe Order do
 
   end
 
-  describe "#receive_vend_tax", :refactor do
+  describe "#receive_vend_tax" do
+    it "should be refactored"
 
     let(:vend_sale) do
       sale = VendObjects.register_sale
@@ -259,6 +260,34 @@ describe Order do
   end
 
   describe "#receive_vend_payments" do
+
+    before(:all) do
+      Fabricate(:vend_payment_method)
+    end
+
+    let(:vend_items) { VendObjects.product_line_items }
+    let(:vend_payments) { VendObjects.payments }
+
+    subject(:order) do
+      Order.create.tap do |o|
+        o.vend_payments = vend_payments
+        o.vend_items = vend_items
+        o.send(:receive_vend_items)
+        o.send(:receive_vend_payments)
+      end
+    end
+
+    it "adds each payment to order" do
+      expect(order.payments.count).to eql(vend_payments.count)
+    end
+
+    it "adds payments for the right amounts" do
+      expect(order.payments.map(&:amount).map(&:to_f)).to match_array(vend_payments.map(&:amount).map(&:to_f))
+    end
+
+    it "adds payments as Vend payment methods" do
+      expect(order.payments.select { |p| p.payment_method.name == "Vend" }.count).to eql(vend_payments.count)
+    end
 
   end
 
