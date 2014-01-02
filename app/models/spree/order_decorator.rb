@@ -104,7 +104,7 @@ Order.class_eval do
   end
 
   def receive_vend_adjustments
-    @vend_line_items.each do |item|
+    self.vend_items.each do |item|
       adjustments.build(
         :label => item.name,
         :amount => (item.quantity.to_i * item.price.to_f)) unless item.name =~ /tax/i

@@ -1,6 +1,6 @@
 module VendObjects
 
-  def self.line_items
+  def self.product_line_items
     Hashie::Mash.new(
       :line_items => [
         {
@@ -66,6 +66,22 @@ module VendObjects
         }
       ]
     ).line_items
+  end
+
+  def self.adjustment_item
+    Hashie::Mash.new(
+      :line_items => [
+        {
+          quantity: 2,
+          price: "10.0",
+          name: Faker::Product.product_name
+        }
+      ]
+    ).line_items
+  end
+
+  def self.assortment_of_all_types_of_line_items
+    [self.product_line_items, self.coupon_line_item, self.shipping_line_item, self.adjustment_item].flatten
   end
 
 end

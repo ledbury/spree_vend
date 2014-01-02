@@ -61,12 +61,12 @@ describe Order do
 
   describe "#receive_vend_items" do
 
-    before do
+    before(:each) do
       Fabricate.times(3, :variant)
       Fabrication::Sequencer.reset
     end
 
-    let(:vend_items) { VendObjects.line_items }
+    let(:vend_items) { VendObjects.product_line_items }
 
     subject(:order) do
       Order.create.tap do |o|
@@ -94,7 +94,7 @@ describe Order do
 
   describe "#receive_vend_coupons" do
 
-    before do
+    before(:all) do
       @promotion = Fabricate(:promotion)
     end
 
@@ -146,7 +146,7 @@ describe Order do
 
     context "with no default shipping method defined" do
       before { SpreeVend.vend_default_shipping_method_name = nil }
-      let(:vend_items) { VendObjects.line_items }
+      let(:vend_items) { VendObjects.product_line_items }
       subject(:order) do
         Order.create.tap do |o|
           o.vend_items = vend_items
@@ -161,7 +161,7 @@ describe Order do
 
     context "with non-existant default shipping method defined" do
       before { SpreeVend.vend_default_shipping_method_name = "Yesterday Shipping" }
-      let(:vend_items) { VendObjects.line_items }
+      let(:vend_items) { VendObjects.product_line_items }
       subject(:order) do
         Order.create.tap do |o|
           o.vend_items = vend_items
@@ -175,7 +175,7 @@ describe Order do
     end
 
     context "with no shipping item in vend sale" do
-      let(:vend_items) { VendObjects.line_items }
+      let(:vend_items) { VendObjects.product_line_items }
       
       it "adds default shipping method to order" do
         expect(order.shipping_method.name).to eql(SpreeVend.vend_default_shipping_method_name)
@@ -203,7 +203,36 @@ describe Order do
 
   end
 
-  describe "#receive_vend_adjustments"
+  describe "#receive_vend_adjustments" do
+
+    before(:all) do
+      SpreeVend.vend_default_shipping_method_name = "Ground"
+      Fabricate(:shipping_method, name: "Ground")
+      Fabricate(:shipping_method, name: "Overnight")
+      Fabricate(:promotion)
+    end
+
+    let(:vend_items) { VendObjects.assortment_of_all_types_of_line_items }
+
+    subject(:order) do
+      Order.create.tap do |o|
+        o.vend_items = vend_items
+        o.send(:receive_vend_items)
+        o.send(:receive_vend_coupons)
+        o.send(:receive_vend_shipping)
+        o.send(:receive_vend_adjustments)
+      end
+    end
+
+    it "adds line items in vend sale that are not found as variants, coupons, or shipping methods as adjustments" do
+      expect(order.adjustments.last.label).to eql(vend_items.last.name)
+    end
+
+    it "consolidates adjustment line items with quantites greater than one into a single adjustment" do
+      expect(order.adjustments.last.amount).to eql(vend_items.last.quantity.to_i * vend_items.last.price.to_f)
+    end
+
+  end
 
   describe "#receive_vend_tax"
 
