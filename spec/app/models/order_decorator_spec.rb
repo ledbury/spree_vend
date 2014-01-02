@@ -142,8 +142,6 @@ describe Order do
       end
     end
 
-    it { expect(ShippingMethod.find_by_name("Ground")).not_to be_nil }
-
     context "with no default shipping method defined" do
       before { SpreeVend.vend_default_shipping_method_name = nil }
       let(:vend_items) { VendObjects.product_line_items }
@@ -234,8 +232,34 @@ describe Order do
 
   end
 
-  describe "#receive_vend_tax"
+  describe "#receive_vend_tax", :refactor do
 
-  describe "#receive_vend_payments"
+    let(:vend_sale) do
+      sale = VendObjects.register_sale
+      sale.register_sale_products << VendObjects.tax_adjustment_item
+      sale.register_sale_products.flatten!
+      sale
+    end
+
+    subject(:order) do
+      Order.create.tap do |o|
+        o.vend_sale = vend_sale
+        o.send(:receive_vend_tax)
+      end
+    end
+
+    it "adds vend-applied tax" do
+      expect(order.adjustments.tax.map(&:amount)).to include(vend_sale.taxes.first.tax)
+    end
+
+    it "adds user-applied tax" do
+      expect(order.adjustments.tax.map(&:amount).map(&:to_f)).to include(vend_sale.register_sale_products.find { |i| i.name =~ /tax/i }.price.to_f)
+    end
+
+  end
+
+  describe "#receive_vend_payments" do
+
+  end
 
 end

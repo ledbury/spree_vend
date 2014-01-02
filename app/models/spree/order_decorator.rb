@@ -1,6 +1,6 @@
 Order.class_eval do
 
-  attr_accessor :vend_customer, :vend_order, :vend_items, :vend_payments
+  attr_accessor :vend_customer, :vend_sale, :vend_items, :vend_payments
 
   def populate_with_vend_sale(vend_sale)
     load_vend_sale_object(vend_sale)
@@ -38,7 +38,7 @@ Order.class_eval do
 
   def load_vend_sale_object(vend_sale)
     self.vend_customer = SpreeVend::Vend.new.get_request("customers?id=#{vend_sale.customer.id}").contact
-    self.vend_order = vend_sale
+    self.vend_sale = vend_sale
     self.vend_items = vend_sale.register_sale_products
     self.vend_payments = vend_sale.register_sale_payments
   end
@@ -113,9 +113,8 @@ Order.class_eval do
 
   # We don't use a spree TaxRate object as the originator so we can force the vend-calculated tax amounts
   def receive_vend_tax
-    vend_order = @vend_order_attributes
-    vend_taxes = vend_order.taxes
-    manual_taxes = vend_order.register_sale_products.find_all do |adj|
+    vend_taxes = self.vend_sale.taxes
+    manual_taxes = self.vend_sale.register_sale_products.find_all do |adj|
       adj.name =~ /tax/i
     end
 
@@ -141,11 +140,10 @@ Order.class_eval do
   end
 
   def receive_vend_payments
-    vend_payments = @vend_payments
     update_totals
 
     # Apply normal payments
-    vend_payments.each do |payment|
+    self.vend_payments.each do |payment|
       payments.build(
         :amount => payment.amount,
         :payment_method_id => PaymentMethod.find_by_name("Vend").id)

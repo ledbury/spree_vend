@@ -15,6 +15,8 @@ Dir["./spec/fabricators/**/*.rb"].each { |file| require file }
 
 RSpec.configure do |config|
 
+  config.treat_symbols_as_metadata_keys_with_true_values = true
+
   config.before(:suite) do
     DatabaseCleaner.strategy = :transaction
     DatabaseCleaner.clean_with(:truncation, pre_count: true)

@@ -80,6 +80,18 @@ module VendObjects
     ).line_items
   end
 
+  def self.tax_adjustment_item
+    Hashie::Mash.new(
+      :line_items => [
+        {
+          quantity: 1,
+          price: "10.0",
+          name: "Virginia Tax"
+        }
+      ]
+    ).line_items
+  end
+
   def self.assortment_of_all_types_of_line_items
     [self.product_line_items, self.coupon_line_item, self.shipping_line_item, self.adjustment_item].flatten
   end
