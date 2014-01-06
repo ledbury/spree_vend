@@ -17,9 +17,7 @@ Order.class_eval do
     self.completed_at = Time.now
     self.state = "complete"
     save(:validate => false)
-    track! :complete_orders
     InventoryUnit.assign_opening_inventory(self)
-    consume_users_credit
     unless line_items.blank? and shipping_method.blank?
       create_shipment!
     end
@@ -37,23 +35,20 @@ Order.class_eval do
   private
 
   def load_vend_sale_object(vend_sale)
-    self.vend_customer = SpreeVend::Vend.new.get_request("customers?id=#{vend_sale.customer.id}").contact
     self.vend_sale = vend_sale
+    self.vend_customer = SpreeVend::Vend.get_request("customers?id=#{vend_sale.customer.id}").contact
     self.vend_items = vend_sale.register_sale_products
     self.vend_payments = vend_sale.register_sale_payments
   end
 
   def receive_vend_customer
     u = User.find_or_create_from_vend_customer(vend_customer)
-    if address = Address.create_from_vend_customer(vend_customer)
-      u.update_attributes_without_callbacks(
-        :ship_address_id => address.id,
-        :bill_address_id => address.id)
-      self.ship_address = address
-      self.bill_address = address
-    else
-      SpreeVend::Notification.info "Vend sale for Spree order #{number} contains no address, but it may not need one."
-    end
+    address = Address.create_from_vend_customer(vend_customer)
+    u.update_attributes_without_callbacks(
+      :ship_address_id => address.id,
+      :bill_address_id => address.id)
+    self.ship_address = address
+    self.bill_address = address
     self.user = u
     self.email = u.email
     save(:validate => false)

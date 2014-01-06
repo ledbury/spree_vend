@@ -2,7 +2,127 @@ require "spec_helper"
 
 describe Order do
 
-  describe "#load_vend_sale_object"
+  before(:each) { Variant.any_instance.stub(:update_vend_inventory).and_return(true) }
+
+  describe "#populate_with_vend_sale" do
+
+    before(:all) do
+      Fabricate(:country)
+      Fabricate(:state)
+      Fabricate(:shipping_method, name: "Ground")
+      Fabricate(:shipping_method, name: "Overnight")
+    end
+
+    before(:each) do
+      SpreeVend::Vend.
+        stub(:get_request).
+        with("customers?id=#{VendObjects.register_sale.customer.id}").
+        and_return(vend_customer)
+      SpreeVend.vend_default_shipping_method_name = "Ground"
+      Fabricate(:vend_payment_method)
+      Fabricate.times(3, :variant)
+      Fabrication::Sequencer.reset
+    end
+
+    let(:vend_sale) { VendObjects.register_sale }
+    let(:vend_customer) { VendObjects.customer }
+
+    subject(:order) do
+      Order.create
+    end
+
+    it "completes procedure without error" do
+      expect { order.populate_with_vend_sale(vend_sale) }.not_to raise_error
+    end
+
+  end
+
+  describe "#finalize_quietly" do
+
+    before(:all) do
+      Fabricate(:country)
+      Fabricate(:state)
+      Fabricate(:shipping_method, name: "Ground")
+      Fabricate(:shipping_method, name: "Overnight")
+    end
+
+    before(:each) do
+      SpreeVend::Vend.
+        stub(:get_request).
+        with("customers?id=#{VendObjects.register_sale.customer.id}").
+        and_return(vend_customer)
+      SpreeVend.vend_default_shipping_method_name = "Ground"
+      Fabricate(:vend_payment_method)
+      Fabricate.times(3, :variant)
+      Fabrication::Sequencer.reset
+    end
+
+    let(:vend_sale) { VendObjects.register_sale }
+    let(:vend_customer) { VendObjects.customer }
+
+    subject(:order) do
+      Order.create.tap do |o|
+        o.populate_with_vend_sale(vend_sale)
+      end
+    end
+
+    it "sets completed at time to current time" do
+      order.finalize_quietly
+      expect(order.completed_at.to_i).to be_within(10).of(Time.now.to_i)
+    end
+
+    it "sets state to complete" do
+      order.finalize_quietly
+      expect(order.state).to eql("complete")
+    end
+
+    it "creates shipments" do
+      order.finalize_quietly
+      expect(order.shipments).not_to be_empty
+    end
+
+    it "logs success message" do
+      expect(SpreeVend::Logger).to receive(:info).with(an_instance_of(String)).at_least(:once)
+      order.finalize_quietly
+    end
+
+  end
+
+  describe "#load_vend_sale_object" do
+
+    before(:each) do
+      SpreeVend::Vend.
+        stub(:get_request).
+        with("customers?id=#{VendObjects.register_sale.customer.id}").
+        and_return(vend_customer)
+    end
+
+    let(:vend_sale) { VendObjects.register_sale }
+    let(:vend_customer) { VendObjects.customer }
+
+    subject(:order) do
+      Order.create.tap do |o|
+        o.send(:load_vend_sale_object, vend_sale)
+      end
+    end
+
+    it "assigns vend customer to vend_customer attribute" do
+      expect(order.vend_customer).to eql(vend_customer.contact)
+    end
+
+    it "assigns vend sale to vend_sale attribute" do
+      expect(order.vend_sale).to eql(vend_sale)
+    end
+
+    it "assigns vend items to vend_items attribute" do
+      expect(order.vend_items).to eql(vend_sale.register_sale_products)
+    end
+
+    it "assigns vend payments to vend_payments attribute" do
+      expect(order.vend_payments).to eql(vend_sale.register_sale_payments)
+    end
+
+  end
 
   describe "#receive_vend_customer" do
 
@@ -19,16 +139,21 @@ describe Order do
     end
 
     context "with an anonymous user" do
-      let(:vend_customer) { VendObjects.anonymous_customer }
+      let(:vend_customer) { VendObjects.anonymous_customer.contact }
       include_examples "receives a vend customer"
 
       it "creates anonymous user" do
         expect(order.user.anonymous?).to be_true
       end
+
+      it "fires notification of invalid address" do
+        expect(SpreeVend::Notification).to receive(:info).with(an_instance_of(String)).at_least(:once)
+        order.send(:receive_vend_customer)
+      end
     end
 
     context "with a bad address" do
-      let(:vend_customer) { VendObjects.invalid_address_customer }
+      let(:vend_customer) { VendObjects.invalid_address_customer.contact }
       include_examples "receives a vend customer"
 
       it "saves address as ship address for user and order" do
@@ -43,7 +168,7 @@ describe Order do
     end
 
     context "with all required info" do
-      let(:vend_customer) { VendObjects.customer }
+      let(:vend_customer) { VendObjects.customer.contact }
       include_examples "receives a vend customer"
 
       it "saves address as ship address for user and order" do
@@ -287,6 +412,15 @@ describe Order do
 
     it "adds payments as Vend payment methods" do
       expect(order.payments.select { |p| p.payment_method.name == "Vend" }.count).to eql(vend_payments.count)
+    end
+
+    context "with processing failure" do
+      before { order.stub(:process_payments!).and_raise(StandardError) }
+
+      it "should catch error and fire notification of error" do
+        expect(SpreeVend::Notification).to receive(:error)
+        order.send(:receive_vend_payments)
+      end
     end
 
   end

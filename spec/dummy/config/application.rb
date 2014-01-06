@@ -1,63 +1,41 @@
-require File.expand_path('../boot', __FILE__)
-
 require 'rails/all'
-
-Bundler.require(*Rails.groups)
-
 require 'spree_vend'
 require 'spree_promo'
 
 module Dummy
   class Application < Rails::Application
-    config.middleware.use "SeoAssist"
-    config.middleware.use "RedirectLegacyProductUrl"
-
-    config.to_prepare do
-      #loads application's model / class decorators
-      Dir.glob(File.join(File.dirname(__FILE__), "../app/**/*_decorator*.rb")) do |c|
-        Rails.configuration.cache_classes ? require(c) : load(c)
-      end
-
-      #loads application's deface view overrides
-      Dir.glob(File.join(File.dirname(__FILE__), "../app/overrides/*.rb")) do |c|
-        Rails.application.config.cache_classes ? require(c) : load(c)
-      end
-    end
-
-    # Settings in config/environments/* take precedence over those specified here.
-    # Application configuration should go into files in config/initializers
-    # -- all .rb files in that directory are automatically loaded.
-
-    # Custom directories with classes and modules you want to be autoloadable.
-    # config.autoload_paths += %W(#{config.root}/extras)
-
-    # Only load the plugins named here, in the order given (default is alphabetical).
-    # :all can be used as a placeholder for all plugins not explicitly named.
-    # config.plugins = [ :exception_notification, :ssl_requirement, :all ]
-
-    # Activate observers that should always be running.
-    # config.active_record.observers = :cacher, :garbage_collector, :forum_observer
-
-    # Set Time.zone default to the specified zone and make Active Record auto-convert to this zone.
-    # Run "rake -D time" for a list of tasks for finding time zone names. Default is UTC.
-    # config.time_zone = 'Central Time (US & Canada)'
-
-    # The default locale is :en and all translations from config/locales/*.rb,yml are auto loaded.
-    # config.i18n.load_path += Dir[Rails.root.join('my', 'locales', '*.{rb,yml}').to_s]
-    # config.i18n.default_locale = :de
-
-    # Configure the default encoding used in templates for Ruby 1.9.
-    config.encoding = "utf-8"
-
-    # Configure sensitive parameters which will be filtered from the log file.
-    config.filter_parameters += [:password]
-
-    # Enable the asset pipeline
-    config.assets.enabled = true
-
-    # Version of your assets, change this if you want to expire all your assets
-    config.assets.version = '1.0'
   end
 end
 
+Dummy::Application.configure do
+  config.session_store :cookie_store, :key => '_dummy_session'
+  config.secret_token = '4717590662650b7c2d7b098bad5ad65016c8049437381fbd9e8aa78eb28f5ac7d6b4e2799e824d91a7f933a750464910d5177a1c3beb45f0fee1ab619833f3f0'
+  config.cache_classes = true
+  config.serve_static_assets = true
+  config.static_cache_control = "public, max-age=3600"
+  config.whiny_nils = true
+  config.consider_all_requests_local = true
+  config.action_controller.perform_caching = false
+  config.action_dispatch.show_exceptions = false
+  config.action_controller.allow_forgery_protection = false
+  config.action_mailer.delivery_method = :test
+  config.active_support.deprecation = :silence
+end
 
+# Enable parameter wrapping for JSON. You can disable this by setting :format to an empty array.
+ActiveSupport.on_load(:action_controller) do
+  wrap_parameters :format => [:json]
+end
+
+# Disable root element in JSON by default.
+ActiveSupport.on_load(:active_record) do
+  self.include_root_in_json = false
+end
+
+Dummy::Application.initialize!
+
+Rails.application.routes.draw do
+  mount SpreeVend::Engine => "/"
+end
+
+ActiveRecord::Base.include_root_in_json = true

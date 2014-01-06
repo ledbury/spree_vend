@@ -1,6 +1,10 @@
 ENV["RAILS_ENV"] = "test"
 
-require File.expand_path("../dummy/config/environment.rb",  __FILE__)
+# SimpleCov.start must be issued before application code is required.
+require 'simplecov'
+SimpleCov.start do
+  add_filter "/spec/"
+end
 
 require "spree_vend"
 require "rspec/rails"
@@ -8,7 +12,10 @@ require "fabrication"
 require "ffaker"
 require "database_cleaner"
 require "hashie"
+require "curb"
 require "test-align-centaur"
+
+require File.expand_path("../dummy/config/application.rb",  __FILE__)
 
 Dir["./spec/support/**/*.rb"].each { |file| require file }
 Dir["./spec/fabricators/**/*.rb"].each { |file| require file }

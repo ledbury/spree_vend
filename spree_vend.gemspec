@@ -27,5 +27,6 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'ffaker'
   s.add_development_dependency 'database_cleaner'
   s.add_development_dependency 'test-align-centaur'
+  s.add_development_dependency 'simplecov'
   
 end
