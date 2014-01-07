@@ -24,26 +24,4 @@ class SpreeVend::Order
     return true
   end
 
-  def is_balance_adjustment_order?
-    attributes.register_sale_products.count == 1 && attributes.register_sale_products.first.product_id == SpreeVend.vend_discount_product_id
-  end
-
-  def self.create_store_balance_order(customer_id, amount)
-    quantity = 0 <=> amount
-    order = {
-      :customer_id => customer_id,
-      :status => "CLOSED",
-      :note => "Account balance adjustment",
-      :register_sale_products => [
-        {
-          :product_id => SpreeVend.vend_discount_product_id,
-          :quantity => quantity,
-          :price => amount.abs
-        }
-      ]
-    }
-    vend = SpreeVend::Vend.new
-    vend.post_request RESOURCE_NAME, order.to_json
-  end
-
 end

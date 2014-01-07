@@ -7,7 +7,7 @@ class VendHooksController < Spree::BaseController
     vend_order = SpreeVend::Order.new payload.id
 
     # For new orders
-    if vend_order.attributes.status == "CLOSED" && !vend_order.is_balance_adjustment_order?
+    if vend_order.attributes.status == "CLOSED"
       # Prevent duplication of order if Vend POSTs too many times, prevent balance adjustment orders from being placed
         unless Rails.cache.read(SpreeVend.vend_cache_key(payload.id))
           Rails.cache.write(SpreeVend.vend_cache_key(payload.id), true)

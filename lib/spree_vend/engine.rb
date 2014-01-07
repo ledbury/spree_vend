@@ -20,6 +20,10 @@ module SpreeVend
 
     config.autoload_paths += %W(#{config.root}/lib)
 
+    routes.draw do
+      post "/api/hooks/vend/order", to: "vend_hooks#order"
+    end
+
     def self.activate
       Dir.glob(File.join(File.dirname(__FILE__), "../../app/**/*_decorator*.rb")) do |c|
         Rails.application.config.cache_classes ? require(c) : load(c)
