@@ -60,9 +60,9 @@ module SpreeVend
     def product_export_csv
       rows = []
       csv_columns = [
-        :handle, # product name parameterized; unique to product, common among product variants
+        :handle,
         :sku,
-        :name, # product name humanized
+        :name,
         :retail_price,
         :track_inventory, # boolean; 1 for yes, 0 for no
         :inventory_hq, # key is inventory_{outlet name}, value is inventory count
