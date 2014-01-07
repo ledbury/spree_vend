@@ -1,5 +1,6 @@
 Fabricator(:user) do
-  email Faker::Internet.email
-  shipping_address { Fabricate(:address) }
-  billing_address { Fabricate(:address) }
+  email { Faker::Internet.email }
+  password { Faker::Lorem.words(3).join("") }
+  ship_address { Fabricate(:address) }
+  bill_address { Fabricate(:address) }
 end

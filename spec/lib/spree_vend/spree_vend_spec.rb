@@ -49,32 +49,73 @@ describe SpreeVend do
   end
 
   describe ".customer_export_csv" do
+    let(:users) { Fabricate.times(8, :user) }
     subject(:spree_vend) { SpreeVend }
 
-    before(:each) { Fabricate.times(3, :user) }
-
-    context "with a scope" do
-      before(:all) do
-        User.define_singleton_method(:fancy_scope) { where(email: "*") }
-      end
-      it "uses the defined scope to create the csv" do
-        expect(User).to receive(:send).with(:fancy_scope)
-        spree_vend.customer_export_csv(:fancy_scope)
-      end
-      it "returns a csv-formatted string"
-    end
+    before(:each) { users }
 
     context "with a block" do
-      it "filters the users using the passed block"
-      it "returns a csv-formatted string"
+      let(:block) { Proc.new { |user| user.email =~ /\.com/ } }
+
+      it "filters the users, including users for which the block returns true" do
+        expect(spree_vend.customer_export_csv(&block).lines.count - 1).to eql(users.select(&block).count)
+      end
+      it "returns a csv-formatted string" do
+        cols = 11
+        rows = users.select(&block).count + 1
+        cells = cols * rows
+        expect(spree_vend.customer_export_csv).to match(/("[\w\d\s_\.\-\@\(\)']*?",?\n?){#{cells}}/)
+      end
     end
 
     context "with no scope or block" do
-      it "uses the default scope and no filter on the User model"
-      it "returns a csv-formatted string"
+
+      it "uses the default scope and no filter on the User model" do
+        expect(spree_vend.customer_export_csv).to include(*User.all.map(&:email))
+      end
+
+      it "returns a csv-formatted string" do
+        cols = 11
+        rows = users.count + 1
+        cells = cols * rows
+        expect(spree_vend.customer_export_csv).to match(/("[\w\d\s_\.\-\@\(\)']*?",?\n?){#{cells}}/)
+      end
     end
   end
 
-  describe "product_export_csv"
+  describe ".product_export_csv" do
+    let(:variants) { Fabricate.times(8, :variant) }
+    subject(:spree_vend) { SpreeVend }
+
+    before(:each) { variants }
+
+    context "with a block" do
+      let(:block) { Proc.new { |variant| variant.sku.to_i > 2 } }
+
+      it "filters the users, including users for which the block returns true" do
+        expect(spree_vend.product_export_csv(&block).match(/\n/).size - 1).to eql(variants.select(&block).count)
+      end
+      it "returns a csv-formatted string" do
+        cols = 20
+        rows = spree_vend.product_export_csv(&block).match(/\n/).size
+        cells = cols * rows
+        expect(spree_vend.product_export_csv).to match(/("[\w\d\s_\.\-\@\(\)']*?",?\n?){#{cells}}/)
+      end
+    end
+
+    context "with no scope or block" do
+
+      it "uses the default scope and no filter on the User model" do
+        expect(spree_vend.product_export_csv).to include(*Variant.all.map(&:sku))
+      end
+
+      it "returns a csv-formatted string" do
+        cols = 20
+        rows = variants.count + 1
+        cells = cols * rows
+        expect(spree_vend.product_export_csv).to match(/("[\w\d\s_\.\-\@\(\)']*?",?\n?){#{cells}}/)
+      end
+    end
+  end
 
 end

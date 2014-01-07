@@ -11,7 +11,7 @@ module SpreeVend
     end
 
     def generate_csv(rows)
-      unless rows.kind_of?(Array) and rows.try(:first).kind_of?(Array) and rows.try(:first).try(:first).kind_of?(String)
+      unless rows.kind_of?(Array) && rows.try(:first).kind_of?(Array) && rows.try(:first).try(:first).kind_of?(String) or rows.try(:first).try(:first).kind_of?(Symbol)
         raise(TypeError, "The argument received by .generate_csv should be an Array[Array[String]]")
       end
       CSV.generate force_quotes: true do |csv|
@@ -21,7 +21,7 @@ module SpreeVend
       end
     end
 
-    def customer_export_csv(scope)
+    def customer_export_csv
       rows = []
       csv_columns = [
         :customer_code,
@@ -37,12 +37,12 @@ module SpreeVend
         :email
       ]
       rows << csv_columns
-      User.send(scope).each do |user|
-        if (block_given? ? !yield(variant) : true)
+      User.scoped.each do |user|
+        if (block_given? ? yield(user) : true)
           rows << [
             user.email,
-            user.firstname,
-            user.lastname,
+            user.try(:ship_address).try(:firstname),
+            user.try(:ship_address).try(:lastname),
             user.try(:ship_address).try(:address1),
             user.try(:ship_address).try(:address2),
             user.try(:ship_address).try(:city),
@@ -57,7 +57,7 @@ module SpreeVend
       self.generate_csv(rows)
     end
 
-    def product_export_csv(scope)
+    def product_export_csv
       rows = []
       csv_columns = [
         :handle, # product name parameterized; unique to product, common among product variants
@@ -82,9 +82,9 @@ module SpreeVend
         :variant_option_six_value
       ]
       rows << csv_columns
-      Variant.send(scope).each do |variant|
-        if (block_given? ? !yield(variant) : true)
-          row << [
+      Variant.scoped.each do |variant|
+        if (block_given? ? yield(variant) : true)
+          row = [
             variant.sku,
             variant.sku,
             variant.name,
@@ -94,9 +94,10 @@ module SpreeVend
             (variant.active_in_vend? ? 1 : 0),
             SpreeVend.vend_default_tax
           ]
-          variant.option_values.each do |o|
-            row << o.option_type.presentation
-            row << o.presentation
+          for i in 0..5
+
+            row << variant.option_values[i].try(:option_type).try(:presentation) or ""
+            row << variant.option_values[i].try(:presentation) or ""
           end
           rows << row
         end

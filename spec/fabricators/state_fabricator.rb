@@ -1,5 +1,5 @@
 Fabricator(:state) do
   name "Virginia"
   abbr "VA"
-  country
+  country { Country.all.empty? ? Fabricate(:country) : Country.first }
 end
