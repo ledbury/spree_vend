@@ -1,7 +1,7 @@
 class VendHooksController < Spree::BaseController
 
   def order
-    payload = SpreeVend::Hooks.parse_payload params[:payload]
+    payload = SpreeVend.parse_json_response params[:payload]
     # We don't use the payload from Vend's POST for security reasons.
     # Instead, we only use the id from it and fetch the sale data from Vend.
     vend_order = SpreeVend::Order.new payload.id

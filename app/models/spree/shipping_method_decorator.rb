@@ -1,9 +1,8 @@
 ShippingMethod.class_eval do
-  after_save :update_vend_shipping_methods
+  after_save :update_vend_shipping_method
 
-  def update_vend_shipping_methods
-    vend_shipping_method = SpreeVend::ShippingMethod.new self
-    vend_shipping_method.update
+  def update_vend_shipping_method
+    SpreeVend::ShippingMethod.new(self).update
     SpreeVend::Logger.info "Updated shipping method #{name} in Vend."
     true
   rescue StandardError => e
