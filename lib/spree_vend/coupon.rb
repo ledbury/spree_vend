@@ -1,6 +1,5 @@
 class SpreeVend::Coupon
-  attr_accessor :code, :name, :spree_promotion
-  attr_reader :vend
+  attr_reader :code, :name, :spree_promotion
 
   RESOURCE_NAME = "products"
 
@@ -8,7 +7,6 @@ class SpreeVend::Coupon
     @spree_promotion = spree_promotion
     @code = @spree_promotion.code
     @name = @spree_promotion.name
-    @vend = SpreeVend::Vend.new
   end
 
   def update
@@ -19,7 +17,7 @@ class SpreeVend::Coupon
       :type => "Coupon",
       :active => (active ? 1 : 0)
     }
-    vend.post_request RESOURCE_NAME, coupon.to_json
+    SpreeVend::Vend.post_request RESOURCE_NAME, coupon.to_json
   end
 
 end
