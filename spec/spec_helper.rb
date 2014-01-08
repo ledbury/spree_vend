@@ -4,6 +4,9 @@ ENV["RAILS_ENV"] = "test"
 require 'simplecov'
 SimpleCov.start do
   add_filter "/spec/"
+  add_filter "/app/controllers/"
+  add_filter "/lib/spree_vend/engine.rb"
+  add_filter "/lib/spree_vend/exceptions.rb"
 end
 
 require "spree_vend"
