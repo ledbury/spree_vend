@@ -6,4 +6,4 @@ login: &login
 
 test:
   <<: *login
-  database: dummy_test
+  database: dummy_test.sqlite3
